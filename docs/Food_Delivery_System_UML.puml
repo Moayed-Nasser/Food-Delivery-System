@@ -1,0 +1,116 @@
+@startuml
+' Food Delivery System - UML Class Diagram
+left to right direction
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam shadowing false
+skinparam monochrome true
+
+abstract class MenuItem {
+  # name : String
+  # basePrice : double
+  + MenuItem(name : String, basePrice : double)
+  {abstract} + getFinalPrice() : double
+}
+
+class Meal {
+  - extraToppings : int
+  {static} - TOPPING_FEE : double = 1.5
+  + Meal(name : String, basePrice : double, extraToppings : int)
+  + getFinalPrice() : double
+}
+class Drink {
+  - isLarge : boolean
+  {static} - LARGE_FEE : double = 1.0
+  + Drink(name : String, basePrice : double, isLarge : boolean)
+  + getFinalPrice() : double
+}
+MenuItem <|-- Meal
+MenuItem <|-- Drink
+
+interface DeliveryOption {
+  + getFee() : double
+}
+class StandardDelivery {
+  {static} - FEE : double = 2.0
+  + getFee() : double
+}
+class ExpressDelivery {
+  {static} - FEE : double = 5.0
+  + getFee() : double
+}
+DeliveryOption <|.. StandardDelivery
+DeliveryOption <|.. ExpressDelivery
+
+interface PaymentMethod {
+  + calculateAmount(total : double) : double
+}
+class CashPayment {
+  + calculateAmount(total : double) : double
+}
+class CardPayment {
+  {static} - CARD_FEE_RATE : double = 0.02
+  + calculateAmount(total : double) : double
+}
+PaymentMethod <|.. CashPayment
+PaymentMethod <|.. CardPayment
+
+class Order {
+  {static} - nextOrderNumber : int = 1001
+  - orderNumber : int
+  - customerName : String
+  - status : OrderStatus = NEW
+  - delivery : DeliveryOption
+  - lines : List<OrderLine>
+  + Order(customerName : String, delivery : DeliveryOption)
+  + addItem(item : MenuItem) : void
+  + addItem(item : MenuItem, quantity : int) : void
+  + getSubtotal() : double
+  + getTotal() : double
+  + pay(method : PaymentMethod) : double
+  + deliver() : void
+  + cancel() : void
+}
+class OrderLine {
+  - item : MenuItem
+  - quantity : int
+  + OrderLine(item : MenuItem, quantity : int)
+  + getLineTotal() : double
+}
+enum OrderStatus {
+  NEW
+  PAID
+  DELIVERED
+  CANCELLED
+}
+
+Order "1" *-- "1..*" OrderLine : contains
+Order "0..*" o-- "1" DeliveryOption : shares / uses
+OrderLine "0..*" --> "1" MenuItem : refers to
+Order ..> PaymentMethod : uses for payment
+Order ..> OrderStatus : state type
+
+note bottom of Order
+  addItem: allowed only when NEW
+  pay: moves NEW to PAID
+  deliver: allowed only when PAID
+  cancel: allowed only when NEW
+  getTotal() = getSubtotal() + delivery.getFee()
+end note
+
+note bottom of Meal
+  price = basePrice + 1.5 * extraToppings
+end note
+note bottom of Drink
+  price = basePrice + (isLarge ? 1 : 0)
+end note
+note bottom of CardPayment
+  amount = total * 1.02
+end note
+note bottom of StandardDelivery
+  fee = 2.00
+end note
+note bottom of ExpressDelivery
+  fee = 5.00
+end note
+@enduml
